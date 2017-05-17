@@ -421,16 +421,60 @@ class GitClient:
 				
 		return result
 
-	def pull(self):
+	def pull(self, repo='origin', refspec=None):
 		result = None
+	
+		full_cmd = "git pull %s" %(repo)
+		
+		if refspec != None:
+			full_cmd = full_cmd + (" %s" %(refspec))
+		
+		logger.info(full_cmd)
+		
+		cmd = command.execute(full_cmd)
+		
+		if cmd.returncode != 0:
+			logger.error("git pull returned %s, code=%d", cmd.output, cmd.returncode)
+		
+		result = cmd.returncode
+		
 		return result
 		
-	def push(self):
+	def push(self, repo='origin', refspec=None, set_upstream=False, force=False, tags=False):
 		result = None
+		
+		full_cmd = "git push"
+		
+		if set_upstream:
+			full_cmd = full_cmd + " --set-upstream"
+			
+		if force:
+			full_cmd = full_cmd + " --force"
+			
+		if tags:
+			full_cmd = full_cmd + " --tags"
+		
+		full_cmd = full_cmd + (" %s" %(repo))
+		
+		if refspec != None:
+			full_cmd = full_cmd + (" %s" %(refspec))
+		
+		logger.info(full_cmd)
+		
+		cmd = command.execute(full_cmd)
+		
+		if cmd.returncode != 0:
+			logger.error("git push returned: %s", str(cmd))
+		
+		result = cmd.returncode
+		
 		return result
 
 	def branch(self):
 		result = None
+		
+		
+		
 		return result
 
 	def reset(self):
@@ -481,5 +525,7 @@ if git != None:
 	# r = git.commit("bla bla bla")
 	# print(r)
 	
-	for item in git.log(10):
-		print(item)
+	# for item in git.log(10):
+		# print(item)
+		
+	git.push(repo='bla')
