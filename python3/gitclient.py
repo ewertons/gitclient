@@ -3,6 +3,9 @@ import re
 import os
 import logging
 
+#TODO:
+# add API to set credentials (Ammon Larsen)
+
 logger = logging.getLogger('gitclient')
 logger.setLevel(logging.DEBUG)
 logger_handler_console = logging.StreamHandler()
@@ -58,14 +61,51 @@ class GitFileChangeDescription:
 
 		return result
 
+class GitLog:
+	commit = None
+	author = None
+	date = None
+	description = None
+	merge = None
+
+	def __str__(self):
+		string = 'commit %s\r\nAuthor: %s\r\nDate: %s' %(self.commit.decode(), self.author.decode(), self.date.decode())
+		return string
+
+	@staticmethod
+	def parse(cmdres):
+		result = []
+		item = None
+
+		for line in cmdres.output.split(b'\n'):
+			if line.startswith(b'commit'):
+				item = GitLog()
+				item.commit = line.split(b' ')[1]
+				result.append(item)
+			elif line.startswith(b'Merge:'):
+				item.merge = line[7:]
+			elif line.startswith(b'Author:'):
+				item.author = line[8:]
+			elif line.startswith(b'Date:'):
+				item.date = line[8:]
+			elif line == b'':
+				continue
+			else:
+				if item.description == None:
+					item.description = line
+				else:
+					item.description += b'\n' + line
+		
+		return result
+		
 class GitStatus:
 	branch = ''
-	staged = []
-	not_staged = []
-	untracked = []
+	staged = None
+	not_staged = None
+	untracked = None
 	
 	def __str__(self):
-		string = 'branch: %s' %(self.branch)
+		string = 'branch: %s' %(str(self.branch))
 		
 		if len(self.staged) > 0:
 			string = string + '\r\nStaged:'
@@ -88,10 +128,14 @@ class GitStatus:
 		
 		if cmdres != None:
 			result = GitStatus()
+			result.staged = []
+			result.not_staged = []
+			result.untracked = []
+
 			is_reading_staged = False
 			is_reading_not_staged = False
 			is_reading_untracked = False
-
+			
 			for line in cmdres.output.split(b'\n'):
 				if b'(use' in line or line == b'':
 					continue
@@ -263,13 +307,21 @@ class GitClient:
 
 		return result
 
-	def checkout(self, target='')
+	def checkout(self, target='', create_branch=False):
 		result = None
 		
 		if target == b'':
 			logger.error("Cannot checkout, target not provided")
 		else:
-			full_cmd = "git checkout %s" %(target)
+			full_cmd = "git checkout"
+			
+			if create_branch:
+				full_cmd = full_cmd + " -b"
+
+			full_cmd = full_cmd + (" %s" %(target))
+
+			logger.info(full_cmd)
+			
 			cmd = command.execute(full_cmd)
 			
 			if cmd.returncode != 0:
@@ -279,17 +331,115 @@ class GitClient:
 				
 		return result
 
+	def add(self, target=''):
+		result = None
+		
+		if target == b'':
+			logger.error("Cannot add, target not provided")
+		else:
+			full_cmd = "git add %s" %(target)
+			
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git add returned %s, code=%d", cmd.output, cmd.returncode)
+			else:
+				result = cmd.returncode
+				
+		return result
+
+	def rm(self, target=''):
+		result = None
+		
+		if target == b'':
+			logger.error("Cannot rm, target not provided")
+		else:
+			full_cmd = "git rm %s" %(target)
+			
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git rm returned %s, code=%d", cmd.output, cmd.returncode)
+			else:
+				result = cmd.returncode
+				
+		return result
+
+	def commit(self, message='', amend=False):
+		result = None
+		
+		if message == b'' and amend == False:
+			logger.error("Cannot commit, message not provided")
+		else:
+			full_cmd = "git commit"
+			
+			if amend:
+				full_cmd = full_cmd + " --amend --no-edit"
+			else:
+				full_cmd = full_cmd + (" -m \"%s\"" %(message))
+			
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git commit returned %s, code=%d", cmd.output, cmd.returncode)
+			else:
+				result = cmd.returncode
+				
+		return result
+
+	def log(self, n=1, author=None, branch=None, path=None):
+		result = None
+		
+		if n <= 0:
+			logger.error("Cannot query log, n is less or equal zero")
+		else:
+			full_cmd = "git log -n %d" %(n)
+			
+			if author != None:
+				full_cmd = full_cmd + (" --author %s" %(author))
+			
+			if branch != None:
+				full_cmd = full_cmd + (" -b %s" %(branch))
+			
+			if path != None:
+				full_cmd = full_cmd + (" -- %s" %(path))
+			
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git log returned %s, code=%d", cmd.output, cmd.returncode)
+			else:
+				result = GitLog.parse(cmd)
+				
+		return result
+
+		
 git = GitClient.open()
 
 if git != None:
 	status = git.status()
 	print((status))
-	git.submodule(subcmd='update')
+	# git.submodule(subcmd='update')
 	
-	for item in git.submodule():
+	# for item in git.submodule():
+		# print(item)
+	
+	# git.checkout("iothub_client//tests//longhaul_tests//main.c")
+	# git.add("iothub_client//tests//file.txt")
+
+	# status2 = git.status()
+	# print(status2)
+	
+	# r = git.commit("bla bla bla")
+	# print(r)
+	
+	for item in git.log(10):
 		print(item)
-	
-	git.checkout("iothub_client//tests//longhaul_tests//main.c")
-	
-	status = git.status()
-		print((status))
