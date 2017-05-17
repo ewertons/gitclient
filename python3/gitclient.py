@@ -421,6 +421,46 @@ class GitClient:
 				
 		return result
 
+	def pull(self):
+		result = None
+		return result
+		
+	def push(self):
+		result = None
+		return result
+
+	def branch(self):
+		result = None
+		return result
+
+	def reset(self):
+		result = None
+		return result
+
+	def remote(self):
+		result = None
+		return result
+
+	def tag(self):
+		result = None
+		return result
+
+	def merge(self):
+		result = None
+		return result
+
+	def mv(self):
+		result = None
+		return result
+
+	def init(self):
+		result = None
+		return result
+		
+	def setCredentials(self):
+		result = None
+		return result
+		
 		
 git = GitClient.open()
 
