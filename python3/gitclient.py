@@ -218,8 +218,7 @@ class GitSubmoduleStatus:
 				result.append(item)
 		
 		return result
-		
-		
+			
 class GitClient:
 	@staticmethod
 	def clone(path='.', url='', recursive=False):
@@ -470,10 +469,47 @@ class GitClient:
 		
 		return result
 
-	def branch(self):
+	def branch(self, branch=None, set_upstream_to=None, set_upstream=False, unset_upstream=False, rename_to=None, delete=False):
 		result = None
 		
+		full_cmd = "git branch"
 		
+		if set_upstream_to != None:
+			if set_upstream_to == b'':
+				full_cmd = None
+				logger.error("git branch failed: set_upstream_to is invalid")
+			else:
+				full_cmd = full_cmd + (" --set-upstream-to=%s" %(set_upstream_to))
+				if branch != None:
+					full_cmd = full_cmd + (" %s" %(branch))
+		elif unset_upstream:
+			full_cmd = full_cmd + " --unset-upstream"
+			if branch != None:
+				full_cmd = full_cmd + (" %s" %(branch))
+		elif rename_to != None:
+			if rename_to == b'':
+				full_cmd = None
+				logger.error("git branch failed: rename_to value is invalid")
+			else:
+				full_cmd = full_cmd + (" -m %s" %(rename_to))
+		elif delete:
+			if branch == None or branch == b'':
+				full_cmd = None
+				logger.error("git branch delete failed: branch value is invalid")
+			else:
+				full_cmd = full_cmd + (" -D" %(branch))
+		
+		if full_cmd != None:
+			
+		
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git branch returned: %s", str(cmd))
+			
+			result = cmd.returncode
 		
 		return result
 
