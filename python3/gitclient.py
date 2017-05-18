@@ -97,6 +97,12 @@ class GitLog:
 					item.description += b'\n' + line
 		
 		return result
+
+class GitTag:
+	@staticmethod
+	def parse(cmdres):
+		result = cmdres.output.split(b'\n')		
+		return result
 		
 class GitStatus:
 	branch = ''
@@ -167,6 +173,13 @@ class GitStatus:
 					result.branch = line.split(b' ')[2]
 			
 		return result
+
+class GitResetMode:
+	Mixed = 0
+	Soft = 1
+	Hard = 2
+	Merged = 3
+	Keep = 4
 
 class GitSubmoduleStatus:
 	is_current_commit_checked_out = True
@@ -498,10 +511,17 @@ class GitClient:
 				logger.error("git branch delete failed: branch value is invalid")
 			else:
 				full_cmd = full_cmd + (" -D" %(branch))
+		else:
+			if branch == None:
+				full_cmd = None
+				logger.error("git branch failed: branch value is not provided")
+			elif branch == b'':
+				full_cmd = None
+				logger.error("git branch failed: branch value is invalid")
+			else:
+				full_cmd = full_cmd + (" %s" %(branch))
 		
 		if full_cmd != None:
-			
-		
 			logger.info(full_cmd)
 			
 			cmd = command.execute(full_cmd)
@@ -513,18 +533,91 @@ class GitClient:
 		
 		return result
 
-	def reset(self):
+	def reset(self, commit=None, mode=GitResetMode.Mixed):
 		result = None
+		
+		full_cmd = "git reset"
+		
+		if mode == GitResetMode.Mixed:
+			full_cmd = full_cmd + " --mixed"
+		elif mode == GitResetMode.Soft:
+			full_cmd = full_cmd + " --soft"
+		elif mode == GitResetMode.Hard:
+			full_cmd = full_cmd + " --hard"
+		elif mode == GitResetMode.Merged:
+			full_cmd = full_cmd + " --merged"
+		elif mode == GitResetMode.Keep:
+			full_cmd = full_cmd + " --keep"
+		else:
+			full_cmd = None
+			logger.error("git reset failed: mode value is invalid")
+
+		if full_cmd != None:
+			if commit != None:
+				full_cmd = full_cmd + (" %s" %(commit))
+		
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git reset returned: %s", str(cmd))
+			
+			result = cmd.returncode
+		
 		return result
 
 	def remote(self):
 		result = None
 		return result
 
-	def tag(self):
+	def tag(self, tag=None, message=None, commit=None, annotate=False, add=False, delete=False):
 		result = None
-		return result
+		parse_result = True
 
+		full_cmd = "git tag"
+
+		if add == True:
+			if tag == None:
+				full_cmd = None
+				logger.error("git tag failed: tag value is invalid")
+			else:
+				if annotate == True:
+					full_cmd += " -a"
+				
+				full_cmd += (" %s" %(tag))
+				
+				if commit != None:
+					full_cmd += (" %s" %(commit))
+				
+				if message != None:
+					full_cmd += (" -m \"%s\"" %(message))
+					
+				parse_result = False
+		elif delete == True:
+			if tag == None:
+				full_cmd = None
+				logger.error("git tag failed: tag value is invalid")
+			else:
+				full_cmd += (" -d %s" %(tag))
+				parse_result = False
+		else:
+			full_cmd += " --list"
+		
+		if full_cmd != None:
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git tag returned: %s", str(cmd))
+			elif parse_result:
+				result = GitTag.parse(cmd)
+			else:
+				result = cmd.returncode
+		
+		return result
+		
 	def merge(self):
 		result = None
 		return result
@@ -564,4 +657,6 @@ if git != None:
 	# for item in git.log(10):
 		# print(item)
 		
-	git.push(repo='bla')
+	# git.push(repo='bla')
+	
+	print(git.tag())
