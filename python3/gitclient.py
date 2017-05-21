@@ -171,6 +171,8 @@ class GitStatus:
 						result.untracked.append(file)
 				elif b'On branch' in line:
 					result.branch = line.split(b' ')[2]
+				elif b'HEAD detached at' in line:
+					result.branch = line.split(b' ')[3]
 			
 		return result
 
@@ -634,29 +636,3 @@ class GitClient:
 		result = None
 		return result
 		
-		
-git = GitClient.open()
-
-if git != None:
-	status = git.status()
-	print((status))
-	# git.submodule(subcmd='update')
-	
-	# for item in git.submodule():
-		# print(item)
-	
-	# git.checkout("iothub_client//tests//longhaul_tests//main.c")
-	# git.add("iothub_client//tests//file.txt")
-
-	# status2 = git.status()
-	# print(status2)
-	
-	# r = git.commit("bla bla bla")
-	# print(r)
-	
-	# for item in git.log(10):
-		# print(item)
-		
-	# git.push(repo='bla')
-	
-	print(git.tag())
