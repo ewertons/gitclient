@@ -33,6 +33,40 @@ class command:
 
 		return result
 
+class GitRemote:
+	name = None
+	url = None
+	type = None
+	
+	@staticmethod
+	def parse(cmdres):
+		result = []
+		
+		lines = cmdres.output.split(b'\n')
+		
+		for line in lines:
+			if line == b'':
+				continue;
+		
+			tokens = []
+			for token in line.split(b' '):
+				sub_tokens = token.split(b'\t')
+				
+				if len(sub_tokens) > 0:
+					for sub_token in sub_tokens:
+						tokens.append(sub_token)
+				else:
+					tokens.append(token)
+			
+			item = GitRemote()
+			item.name = tokens[0]
+			item.url = tokens[1]
+			item.type = tokens[2]
+			
+			result.append(item)
+		
+		return result
+		
 class GitFileChangeDescription:
 	change_type = None
 	file = ''
@@ -569,8 +603,43 @@ class GitClient:
 		
 		return result
 
-	def remote(self):
+	def remote(self, name=None, url=None, branch=None, prune=False, add=False, remove=False):
 		result = None
+		needs_parsing = False
+		full_cmd = "git remote"
+		
+		if add:
+			if name == None or url == None:
+				logger.error("git remote failed: name and/or url value is invalid")
+				full_cmd = None
+			else:
+				if branch != None:
+					full_cmd += " -t %s" %(branch)
+					
+				full_cmd += " %s %s" %(name, url)
+		elif remove:
+			if name == None:
+				logger.error("git remote failed: name value is invalid")
+				full_cmd = None
+			else:
+				full_cmd += " remove %s" %(name)
+		else:
+			full_cmd += " -v"
+			needs_parsing = True
+
+		if full_cmd != None:
+			logger.info(full_cmd)
+			
+			cmd = command.execute(full_cmd)
+			
+			if cmd.returncode != 0:
+				logger.error("git remote returned: %s", str(cmd))
+				result = cmd.returncode
+			elif needs_parsing:
+				result = GitRemote.parse(cmd)
+			else:
+				result = cmd.returncode
+
 		return result
 
 	def tag(self, tag=None, message=None, commit=None, annotate=False, add=False, delete=False):
